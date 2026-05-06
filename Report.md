@@ -101,67 +101,102 @@
         E → !E | ( C ) | S < S | S > S | S == S | S != S | S <= S | S >= S
 
     3.2) КС-Грамматика с устраненной левой рекурсией:
-        P → { L }
-
-        L → A ; L | W ; L | B ; L | λ
-
-        A → V H = S
-        W → while ( C ) { L } 
-        B → if ( C ) { L } else { L }
-        
-        V → ID (терминал)
-
-        H → [ S ] | [ S, S ] | λ
-        S → T U
-        U → + T U | - T U | λ
-        T → F Y
-        Y → * F Y | \ F Y | λ
-        F → ( S ) | V H | INT (терминал) | + G | - G Z
-
-        G → ( S ) | V H | INT
-        Z → λ
-
-        C → K D
-        D → || K D | && K D | λ
-        K → E Q
-        Q → < E Q | > E Q | <= E Q | >= E Q | == E Q | != E Q | λ
-        E → !E | ( C ) | S
+         P → { L }
+         
+         L → A ; L | W ; L | B ; L | λ
+         
+         A → V H = S
+         W → while ( C ) { L } 
+         B → if ( C ) { L } else { L }
+         
+         V → ID (терминал)
+         
+         H → [ S ] | [ S, S ] | λ
+         S → T U
+         U → + T U | - T U | λ
+         T → F Y
+         Y → * F Y | \ F Y | λ
+         F → ( S ) | V H | INT (терминал) | + G | - G Z
+         
+         G → ( S ) | V H | INT
+         Z → λ
+         
+         C → K D
+         D → || K D | && K D | λ
+         K → E Q
+         Q → < E Q | > E Q | <= E Q | >= E Q | == E Q | != E Q | λ
+         E → !E | ( C ) | S
 
     3.3) Нестрограя нормальная форма Грейбоха:
-        P → { L }
-
-        L → A ; L | W ; L | B ; L | λ
-
-        A → V H = S
-
-        W → while ( C ) { L }
-
-        B → if ( C ) { L } else { L }
-
-        V → ID
-
-        H → [ S ] | [ S , S ] | λ
-
-        S → ( S ) Y U | V H Y U | INT Y U | + G Y U | - G Z Y U
-
-        U → + T U | - T U | λ
-
-        T → ( S ) Y | V H Y | INT Y | + G Y | - G Z Y
-
-        Y → * F Y | / F Y | λ
-
-        F → ( S ) | V H | INT | + G | - G Z
-
-        G → ( S ) | V H | INT
-
-        Z → λ
-
-        C → K D
-
-        D → || K D | && K D | λ
-
-        K → ( C ) Q | ! E Q | ( S ) Y U Q | V H Y U Q | INT Y U Q | + G Y U Q | - G Z Y U Q
-
-        Q → < E Q | > E Q | <= E Q | >= E Q | == E Q | != E Q | λ
-
-        E → ( C ) | ! E | S
+         P → { L }
+         
+         L → ID H = S ; L
+         L → while ( C ) { L } ; L
+         L → if ( C ) { L } else { L } ; L
+         L → λ
+         
+         S → ( S ) Y U                   
+         S → ID H Y U                   
+         S → INT Y U
+         S → + G Y U
+         S → - G Z Y U
+         
+         U → + T U
+         U → - T U
+         U → λ
+         
+         T → ( S ) Y
+         T → ID H Y
+         T → INT Y
+         T → + G Y
+         T → - G Z Y
+         
+         Y → * F Y
+         Y → / F Y
+         Y → λ
+         
+         F → ( S )
+         F → ID H
+         F → INT
+         F → + G
+         F → - G Z
+         
+         G → ( S )
+         G → ID H
+         G → INT
+         
+         Z → λ
+         
+         H → [ S K
+         H → λ
+         
+         K → ]
+         K → , S ]
+         
+         C → ( C ) Q D                 
+         C → ! E Q D
+         C → ( S ) Y U Q D              
+         C → ID H Y U Q D
+         C → INT Y U Q D
+         C → + G Y U Q D
+         C → - G Z Y U Q D
+         
+         D → || K D
+         D → && K D
+         D → λ
+         
+         Q → < E Q
+         Q → > E Q
+         Q → <= E Q
+         Q → >= E Q
+         Q → == E Q
+         Q → != E Q
+         Q → λ
+         
+         E → ( C )
+         E → ! E
+         E → ( S )                      
+         E → ID H
+         E → INT
+         E → + G
+         E → - G Z
