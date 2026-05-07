@@ -3,7 +3,7 @@
 #include <variant>
 
 int main() {
-    std::string test = "a = 10 + 4";
+    std::string test = "A ========= 5";
 
     try {
         bool is_correct = LexicalAnalyzer::IsLexicalCorrect(test);
