@@ -1,0 +1,3 @@
+/mnt/01DBD3B8458BBAB0/Projects/transinterpreter/cpp_code/build/CMakeFiles/transinterpreter.dir
+/mnt/01DBD3B8458BBAB0/Projects/transinterpreter/cpp_code/build/CMakeFiles/edit_cache.dir
+/mnt/01DBD3B8458BBAB0/Projects/transinterpreter/cpp_code/build/CMakeFiles/rebuild_cache.dir
