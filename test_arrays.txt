@@ -1,0 +1,4 @@
+int[5] arr;
+arr[1] = 10;
+arr[2] = 20;
+output(arr[1] + arr[2]);

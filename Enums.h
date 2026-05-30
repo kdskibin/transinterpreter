@@ -1,93 +1,68 @@
 #pragma once
 
-
+// Типы терминалов (токенов), распознаваемых лексическим анализатором
 enum class ETerminalType {
-    Number,
-    TextLine,
-    Boolean,
-    Plus,
-    Minus,
-    Multiply,
-    Divide,
-    Modulus,
-    And,
-    Or,
-    Not,
-    LeftParen,
-    RightParen,
-    LeftBracket,
-    RightBracket,
-    LeftBrace,
-    RightBrace,
+    // Литералы
+    Number, TextLine, Boolean,
+    // Арифметические операторы
+    Plus, Minus, Multiply, Divide, Modulus,
+    // Логические операторы
+    And, Or, Not,
+    // Скобки
+    LeftParen, RightParen, LeftBracket, RightBracket, LeftBrace, RightBrace,
+    // Кавычки
     DoubleQuote,
-    Assignment,
-    VariableName,
-    If,
-    Else,
-    Equal,
-    Less,
-    Greater,
-    LessEqual,
-    GreaterEqual,
-    While,
-    Int,
-    String,
-    Bool,
-    Output,
-    Input,
-    Semicolon,
-    Sqrt,
-    Pow
+    // Присваивание и сравнение
+    Assignment, Equal, Less, Greater, LessEqual, GreaterEqual,
+    // Идентификаторы и ключевые слова
+    VariableName, If, Else, While,
+    // Типы данных
+    Int, String, Bool,
+    // Встроенные функции
+    Output, Input, Sqrt, Pow,
+    // Разделитель
+    Semicolon
 };
 
+// Типы символов обратной польской нотации (RPN)
+// F_ — операции, A_ — аргументы, T_ — служебные токены, M_ — метки
 enum class ERPNType {
-    F_Output,
-    F_Input,
+    // Операции ввода/вывода
+    F_Output, F_Input,
+    // Присваивание
     F_Assignment,
-    F_And,
-    F_Or,
-    F_Equal,
-    F_Less,
-    F_Greater,
-    F_LessEqual,
-    F_GreaterEqual,
-    F_Plus,
-    F_Minus,
-    F_Multiply,
-    F_Divide,
-    F_Modulus,
-    F_Not,
-    F_Sqrt,
-    F_Pow,
+    // Логические операции
+    F_And, F_Or,
+    // Сравнения
+    F_Equal, F_Less, F_Greater, F_LessEqual, F_GreaterEqual,
+    // Арифметические операции
+    F_Plus, F_Minus, F_Multiply, F_Divide, F_Modulus,
+    // Унарные и функции
+    F_Not, F_Sqrt, F_Pow,
+    // Индексация массива
     F_Index,
-    F_Int,
-    F_String,
-    F_Bool,
-    F_IntArray,
-    F_StringArray,
-    F_BoolArray,
-    A_Number,
-    A_TextLine,
-    A_Boolean,
-    A_VariableName,
-    T_If,
-    T_Else,
-    T_While,
-    T_Semicolon,
-    T_LeftParen,
-    T_RightParen,
-    T_LeftBracket,
-    T_RightBracket,
-    T_LeftBrace,
-    T_RightBrace,
+    // Объявление переменных
+    F_Int, F_String, F_Bool,
+    // Объявление массивов
+    F_IntArray, F_StringArray, F_BoolArray,
+    // Аргументы (операнды)
+    A_Number, A_TextLine, A_Boolean, A_VariableName,
+    // Служебные токены
+    T_If, T_Else, T_While, T_Semicolon,
+    T_LeftParen, T_RightParen,
+    T_LeftBracket, T_RightBracket,
+    T_LeftBrace, T_RightBrace,
+    // Управление потоком
     F_ConditionalJumpToMark,
     F_UnconditionalJumpToMark,
+    // Метка перехода
     M_Mark
 };
 
+// Конкретные типы меток для управления потоком
 enum class EMarkType {
-    WhileBeginMark,
-    WhileEndMark,
-    IfMark,
-    ElseMark
+    WhileBeginMark, // Начало тела цикла while
+    WhileEndMark,   // Конец тела цикла while
+    IfMark,         // Переход при ложном условии if
+    ElseMark        // Безусловный переход в конце блока if (минуя else)
 };

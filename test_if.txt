@@ -1,0 +1,9 @@
+int a;
+int b;
+a = 5;
+b = 10;
+if (a < b) {
+output(a);
+} else {
+output(b);
+}

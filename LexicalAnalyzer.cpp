@@ -1,253 +1,292 @@
 #include "LexicalAnalyzer.h"
-#include "TransitionTable.h"
-#include <stdexcept>
 #include <iostream>
-#include <cctype>
+#include <stdexcept>
+#include <functional>
+#include <unordered_map>
 
-
-std::string LexicalAnalyzer::Data;
-size_t LexicalAnalyzer::_pointer = 0;
+// Инициализация статических членов
+std::string LexicalAnalyzer::_data;
+std::vector<std::shared_ptr<Terminal>> LexicalAnalyzer::_terminals;
 int LexicalAnalyzer::_charPointer = 1;
 int LexicalAnalyzer::_linePointer = 1;
-int LexicalAnalyzer::_char = 1;
-std::vector<Terminal> LexicalAnalyzer::Terminals;
+int LexicalAnalyzer::_char        = 1;
+int LexicalAnalyzer::_pointer     = 0;
 
-bool LexicalAnalyzer::IsLexicalCorrect(const std::string& data) {
-    Data = data;
-    _pointer = 0;
-    _charPointer = 1;
-    _linePointer = 1;
-    _char = 1;
-    Terminals.clear();
+// ────────────────────────────────────────────────────────────
+//  Вспомогательные методы
+// ────────────────────────────────────────────────────────────
 
-    while (_pointer < Data.size()) {
-        Start_Analyse();
-    }
-    return true;
+char LexicalAnalyzer::currentChar() {
+    return _data[_pointer];
 }
 
-std::vector<Terminal> LexicalAnalyzer::GetTerminals() {
-    return Terminals;
-}
-
-char LexicalAnalyzer::CurrentChar() {
-    return Data[_pointer];
-}
-
-void LexicalAnalyzer::Advance() {
-    ++_pointer;
-    ++_charPointer;
-    if (_pointer < Data.size() && Data[_pointer] == '\n') {
-        ++_linePointer;
+void LexicalAnalyzer::advancePointer() {
+    if (_pointer >= static_cast<int>(_data.size()))
+        return;
+    _pointer++;
+    _charPointer++;
+    if (_pointer < static_cast<int>(_data.size()) && _data[_pointer] == '\n') {
+        _linePointer++;
         _charPointer = 0;
         _char = 1;
     }
 }
 
-std::string LexicalAnalyzer::CurrentCharGroup() {
-    char c = CurrentChar();
-    if (c >= '0' && c <= '9')
-        return "<ц>";
-    else if ( (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' )
-        return "<б>";
-    else if (c == '"') return "<\">";
-    else if (c == ' ' || c == '\n') return "< >";
-    else if (c == ';') return "<;>";
-    else if (c == '+') return "<+>";
-    else if (c == '-') return "<->";
-    else if (c == '*') return "<*>";
-    else if (c == '/') return "</>";
-    else if (c == '%') return "<%>";
-    else if (c == '<') return "<<>";
-    else if (c == '>') return "<>>";
-    else if (c == '=') return "<=>";
-    else if (c == '&') return "<&>";
-    else if (c == '|') return "<|>";
-    else if (c == '!') return "<!>";
-    else if (c == '(') return "<(>";
-    else if (c == ')') return "<)>";
-    else if (c == '[') return "<[>";
-    else if (c == ']') return "<]>";
-    else if (c == '{') return "<{>";
-    else if (c == '}') return "<}>";
-    else if ( (c >= 'а' && c <= 'я') || (c >= 'А' && c <= 'Я') || c == '?' || c == ',' || c == '.' )
-        return "<o>";
-    else {
-        std::cerr << "Некорректный символ: " << c
-                  << "\tСтрока " << _linePointer
-                  << ";\tСимвол " << _charPointer << ";" << std::endl;
-        throw std::invalid_argument(std::string("символ \"") + c + "\" недопустим в грамматике");
+void LexicalAnalyzer::readTerminal(ETerminalType type) {
+    _terminals.push_back(std::make_shared<Terminal>(type, _linePointer, _char));
+}
+
+void LexicalAnalyzer::readTerminalWithValue(ETerminalType type, const std::string& value) {
+    switch (type) {
+        case ETerminalType::Number:
+            _terminals.push_back(std::make_shared<TerminalNumber>(_linePointer, _char, value));
+            break;
+        case ETerminalType::TextLine:
+            _terminals.push_back(std::make_shared<TerminalTextLine>(_linePointer, _char, value));
+            break;
+        case ETerminalType::Boolean:
+            _terminals.push_back(std::make_shared<TerminalBoolean>(_linePointer, _char, value));
+            break;
+        case ETerminalType::VariableName:
+            _terminals.push_back(std::make_shared<TerminalIdentifier>(_linePointer, _char, value));
+            break;
+        default:
+            throw std::runtime_error("Невозможный тип терминала");
     }
 }
 
-void LexicalAnalyzer::Start_Analyse() {
+std::string LexicalAnalyzer::currentCharGroup() {
+    char c = currentChar();
+
+    if (c >= '0' && c <= '9')                          return "<ц>";
+    if ((c >= 'a' && c <= 'z') ||
+        (c >= 'A' && c <= 'Z') || c == '_')            return "<б>";
+    if (c == '"')  return "<\">";
+    if (c == ' ' || c == '\n') return "< >";
+    if (c == ';')  return "<;>";
+    if (c == '+')  return "<+>";
+    if (c == '-')  return "<->";
+    if (c == '*')  return "<*>";
+    if (c == '/')  return "</>";
+    if (c == '%')  return "<%>";
+    if (c == '<')  return "<<>";
+    if (c == '>')  return "<>>";
+    if (c == '=')  return "<=>";
+    if (c == '&')  return "<&>";
+    if (c == '|')  return "<|>";
+    if (c == '!')  return "<!>";
+    if (c == '(')  return "<(>";
+    if (c == ')')  return "<)>";
+    if (c == '[')  return "<[>";
+    if (c == ']')  return "<]>";
+    if (c == '{')  return "<{>";
+    if (c == '}')  return "<}>";
+
+    // Кириллица и прочие допустимые символы внутри строковых литералов обрабатываются в STR_Analyse,
+    // здесь они попадают только если встречаются вне строк — это ошибка
+    std::cout << "Некорректный символ: " << c
+              << "\tСтрока " << _linePointer
+              << ";\tСимвол " << _charPointer << ";\n";
+    throw std::out_of_range(std::string("символ '") + c + "' недопустим в грамматике");
+}
+
+// ────────────────────────────────────────────────────────────
+//  Таблица переходов (встроена как unordered_map)
+// ────────────────────────────────────────────────────────────
+
+static std::unordered_map<std::string, std::function<void()>>& getTransitionTable() {
+    static std::unordered_map<std::string, std::function<void()>> table = {
+        { "<ц>",  []{ LexicalAnalyzer::NUM_Analyse(); } },
+        { "<б>",  []{ LexicalAnalyzer::ID_Analyse();  } },
+        { "< >",  []{ LexicalAnalyzer::skipWhitespace(); } },
+        { "<\">", []{ LexicalAnalyzer::STR_Analyse(); } },
+        { "<;>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Semicolon); } },
+        { "<+>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Plus);      } },
+        { "<->",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Minus);     } },
+        { "<*>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Multiply);  } },
+        { "</>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Divide);    } },
+        { "<%>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Modulus);   } },
+        { "<<>",  []{ LexicalAnalyzer::LESS_Analyse();  } },
+        { "<>>",  []{ LexicalAnalyzer::MORE_Analyse();  } },
+        { "<=>",  []{ LexicalAnalyzer::EQUAL_Analyse(); } },
+        { "<!>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Not);        } },
+        { "<&>",  []{ LexicalAnalyzer::AND_Analyse();   } },
+        { "<|>",  []{ LexicalAnalyzer::OR_Analyse();    } },
+        { "<(>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::LeftParen);  } },
+        { "<)>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::RightParen); } },
+        { "<[>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::LeftBracket);  } },
+        { "<]>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::RightBracket); } },
+        { "<{>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::LeftBrace);  } },
+        { "<}>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::RightBrace); } },
+    };
+    return table;
+}
+
+// ────────────────────────────────────────────────────────────
+//  Главный цикл анализа
+// ────────────────────────────────────────────────────────────
+
+void LexicalAnalyzer::startAnalyse() {
     _char = _charPointer;
-    std::string charGroup = CurrentCharGroup();
-    TransitionTable::Action action;
-    if (TransitionTable::TryGetAction(charGroup, action)) {
-        action();
+    std::string group = currentCharGroup();
+
+    auto& table = getTransitionTable();
+    auto it = table.find(group);
+    if (it != table.end()) {
+        it->second();
     } else {
-        std::cerr << "Некорректный символ: " << CurrentChar()
+        std::cout << "Некорректный символ: " << currentChar()
                   << "\tСтрока " << _linePointer
-                  << ";\tСимвол " << _charPointer << ";" << std::endl;
+                  << ";\tСимвол " << _charPointer << ";\n";
         throw std::runtime_error("Недопустимый символ.");
     }
 }
 
-void LexicalAnalyzer::ReadTerminal(ETerminalType type) {
-    Terminals.emplace_back(type, _linePointer, _char);
-}
+bool LexicalAnalyzer::isLexicalCorrect(const std::string& data) {
+    _data        = data;
+    _pointer     = 0;
+    _charPointer = 1;
+    _linePointer = 1;
+    _char        = 1;
+    _terminals.clear();
 
-void LexicalAnalyzer::ReadTerminal(ETerminalType type, const std::string& value) {
-    switch (type) {
-        case ETerminalType::Number: {
-            int num = std::stoi(value);
-            Terminals.emplace_back(type, _linePointer, _char, num);
-            break;
-        }
-        case ETerminalType::TextLine:
-            Terminals.emplace_back(type, _linePointer, _char, value);
-            break;
-        case ETerminalType::Boolean: {
-            bool b;
-            if (value == "true") b = true;
-            else if (value == "false") b = false;
-            else throw std::invalid_argument("Invalid boolean value: " + value);
-            Terminals.emplace_back(type, _linePointer, _char, b);
-            break;
-        }
-        case ETerminalType::VariableName:
-            Terminals.emplace_back(type, _linePointer, _char, value);
-            break;
-        default:
-            throw std::logic_error("Невозможный тип терминала");
+    while (_pointer < static_cast<int>(_data.size())) {
+        startAnalyse();
     }
+    return true;
 }
 
-void LexicalAnalyzer::SkipWhitespace() {
-    Advance();
+std::vector<std::shared_ptr<Terminal>> LexicalAnalyzer::getTerminals() {
+    return _terminals;
 }
 
-void LexicalAnalyzer::ProcessSimpleToken(ETerminalType terminalType) {
-    ReadTerminal(terminalType);
-    Advance();
+// ────────────────────────────────────────────────────────────
+//  Методы анализа отдельных категорий токенов
+// ────────────────────────────────────────────────────────────
+
+void LexicalAnalyzer::skipWhitespace() {
+    advancePointer();
 }
 
+void LexicalAnalyzer::processSimpleToken(ETerminalType type) {
+    readTerminal(type);
+    advancePointer();
+}
+
+// Анализ числового литерала
 void LexicalAnalyzer::NUM_Analyse() {
     std::string number;
-    while (_pointer < Data.size() && CurrentChar() >= '0' && CurrentChar() <= '9') {
-        number += CurrentChar();
-        Advance();
-    }
-    ReadTerminal(ETerminalType::Number, number);
+    do {
+        number += currentChar();
+        advancePointer();
+    } while (_pointer < static_cast<int>(_data.size()) && currentCharGroup() == "<ц>");
+
+    readTerminalWithValue(ETerminalType::Number, number);
 }
 
+// Анализ идентификатора или ключевого слова
 void LexicalAnalyzer::ID_Analyse() {
     std::string identifier;
-    while (_pointer < Data.size() &&
-           ((CurrentChar() >= 'a' && CurrentChar() <= 'z') ||
-            (CurrentChar() >= 'A' && CurrentChar() <= 'Z') ||
-            (CurrentChar() >= '0' && CurrentChar() <= '9') ||
-            CurrentChar() == '_')) {
-        identifier += CurrentChar();
-        Advance();
-    }
-    // Проверка ключевых слов
-    if (identifier == "while") {
-        ReadTerminal(ETerminalType::While);
-    } else if (identifier == "if") {
-        ReadTerminal(ETerminalType::If);
-    } else if (identifier == "else") {
-        ReadTerminal(ETerminalType::Else);
-    } else if (identifier == "int") {
-        ReadTerminal(ETerminalType::Int);
-    } else if (identifier == "string") {
-        ReadTerminal(ETerminalType::String);
-    } else if (identifier == "bool") {
-        ReadTerminal(ETerminalType::Bool);
-    } else if (identifier == "output") {
-        ReadTerminal(ETerminalType::Output);
-    } else if (identifier == "input") {
-        ReadTerminal(ETerminalType::Input);
-    } else if (identifier == "true" || identifier == "false") {
-        ReadTerminal(ETerminalType::Boolean, identifier);
-    } else if (identifier == "sqrt") {
-        ReadTerminal(ETerminalType::Sqrt);
-    } else {
-        ReadTerminal(ETerminalType::VariableName, identifier);
-    }
+    do {
+        identifier += currentChar();
+        advancePointer();
+    } while (_pointer < static_cast<int>(_data.size()) &&
+             (currentCharGroup() == "<ц>" || currentCharGroup() == "<б>"));
+
+    // Проверяем, является ли идентификатор ключевым словом
+    if      (identifier == "while")  readTerminal(ETerminalType::While);
+    else if (identifier == "if")     readTerminal(ETerminalType::If);
+    else if (identifier == "else")   readTerminal(ETerminalType::Else);
+    else if (identifier == "int")    readTerminal(ETerminalType::Int);
+    else if (identifier == "string") readTerminal(ETerminalType::String);
+    else if (identifier == "bool")   readTerminal(ETerminalType::Bool);
+    else if (identifier == "output") readTerminal(ETerminalType::Output);
+    else if (identifier == "input")  readTerminal(ETerminalType::Input);
+    else if (identifier == "sqrt")   readTerminal(ETerminalType::Sqrt);
+    else if (identifier == "true" || identifier == "false")
+        readTerminalWithValue(ETerminalType::Boolean, identifier);
+    else
+        readTerminalWithValue(ETerminalType::VariableName, identifier);
 }
 
+// Анализ строкового литерала в двойных кавычках
 void LexicalAnalyzer::STR_Analyse() {
-    std::string textLine;
-    Advance(); // пропуск открывающей кавычки
-    while (_pointer < Data.size() && CurrentChar() != '"') {
-        textLine += CurrentChar();
-        Advance();
+    std::string text;
+    advancePointer(); // пропускаем открывающую кавычку
+
+    while (_pointer < static_cast<int>(_data.size()) && currentChar() != '"') {
+        text += currentChar();
+        advancePointer();
     }
-    if (_pointer < Data.size() && CurrentChar() == '"') {
-        Advance(); // пропуск закрывающей кавычки
-        ReadTerminal(ETerminalType::TextLine, textLine);
+
+    if (_pointer < static_cast<int>(_data.size()) && currentChar() == '"') {
+        advancePointer(); // пропускаем закрывающую кавычку
+        readTerminalWithValue(ETerminalType::TextLine, text);
     } else {
-        std::cerr << "Незакрытая строка: "
+        std::cout << "Незакрытая строка:"
                   << "\tСтрока " << _linePointer
-                  << ";\tСимвол " << _charPointer << ";" << std::endl;
+                  << ";\tСимвол " << _charPointer << ";\n";
         throw std::runtime_error("Незакрытая строка.");
     }
 }
 
+// Анализ оператора '<' или '<='
 void LexicalAnalyzer::LESS_Analyse() {
-    Advance(); // пропуск '<'
-    if (_pointer < Data.size() && CurrentChar() == '=') {
-        ReadTerminal(ETerminalType::LessEqual);
-        Advance();
+    advancePointer();
+    if (_pointer < static_cast<int>(_data.size()) && currentChar() == '=') {
+        readTerminal(ETerminalType::LessEqual);
+        advancePointer();
     } else {
-        ReadTerminal(ETerminalType::Less);
+        readTerminal(ETerminalType::Less);
     }
 }
 
+// Анализ оператора '>' или '>='
 void LexicalAnalyzer::MORE_Analyse() {
-    Advance(); // пропуск '>'
-    if (_pointer < Data.size() && CurrentChar() == '=') {
-        ReadTerminal(ETerminalType::GreaterEqual);
-        Advance();
+    advancePointer();
+    if (_pointer < static_cast<int>(_data.size()) && currentChar() == '=') {
+        readTerminal(ETerminalType::GreaterEqual);
+        advancePointer();
     } else {
-        ReadTerminal(ETerminalType::Greater);
+        readTerminal(ETerminalType::Greater);
     }
 }
 
+// Анализ оператора '=' или '=='
 void LexicalAnalyzer::EQUAL_Analyse() {
-    Advance(); // пропуск первого '='
-    if (_pointer < Data.size() && CurrentChar() == '=') {
-        ReadTerminal(ETerminalType::Equal);
-        Advance();
+    advancePointer();
+    if (_pointer < static_cast<int>(_data.size()) && currentChar() == '=') {
+        readTerminal(ETerminalType::Equal);
+        advancePointer();
     } else {
-        ReadTerminal(ETerminalType::Assignment);
+        readTerminal(ETerminalType::Assignment);
     }
 }
 
+// Анализ оператора '&&'
 void LexicalAnalyzer::AND_Analyse() {
-    Advance(); // пропуск первого '&'
-    if (_pointer < Data.size() && CurrentChar() == '&') {
-        ReadTerminal(ETerminalType::And);
-        Advance();
+    advancePointer();
+    if (_pointer < static_cast<int>(_data.size()) && currentChar() == '&') {
+        readTerminal(ETerminalType::And);
+        advancePointer();
     } else {
-        std::cerr << "Некорректный оператор: одиночный '&'"
+        std::cout << "Некорректный оператор: одиночный '&'"
                   << "\tСтрока " << _linePointer
-                  << ";\tСимвол " << _charPointer << ";" << std::endl;
+                  << ";\tСимвол " << _charPointer << ";\n";
         throw std::runtime_error("Некорректный оператор: одиночный '&'. Используйте '&&'.");
     }
 }
 
+// Анализ оператора '||'
 void LexicalAnalyzer::OR_Analyse() {
-    Advance(); // пропуск первого '|'
-    if (_pointer < Data.size() && CurrentChar() == '|') {
-        ReadTerminal(ETerminalType::Or);
-        Advance();
+    advancePointer();
+    if (_pointer < static_cast<int>(_data.size()) && currentChar() == '|') {
+        readTerminal(ETerminalType::Or);
+        advancePointer();
     } else {
-        std::cerr << "Некорректный оператор: одиночный '|'"
+        std::cout << "Некорректный оператор: одиночный '|'"
                   << "\tСтрока " << _linePointer
-                  << ";\tСимвол " << _charPointer << ";" << std::endl;
+                  << ";\tСимвол " << _charPointer << ";\n";
         throw std::runtime_error("Некорректный оператор: одиночный '|'. Используйте '||'.");
     }
 }
