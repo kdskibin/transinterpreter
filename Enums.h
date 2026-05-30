@@ -21,7 +21,9 @@ enum class ETerminalType {
     // Встроенные функции
     Output, Input, Sqrt, Pow,
     // Разделитель
-    Semicolon
+    Semicolon,
+    // Маркер конца файла (для синтаксического анализатора)
+    EndOfFile
 };
 
 // Типы символов обратной польской нотации (RPN)
