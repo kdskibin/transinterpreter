@@ -1,9 +1,15 @@
-int i;
-int sum;
-i = 0;
-sum = 0;
-while (i < 5) {
-sum = sum + i;
-i = i + 1;
+{
+    int i;
+    int j;
+    int sum;
+    i = 0;
+    j = 0;
+    while (i < 5) {
+        while (i < 5)
+        {
+            output(j);
+            j = j + 1;
+        }
+    i = i + 1;
+    }
 }
-output(sum);

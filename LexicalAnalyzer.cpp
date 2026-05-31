@@ -68,7 +68,6 @@ std::string LexicalAnalyzer::currentCharGroup() {
     if (c == '-')  return "<->";
     if (c == '*')  return "<*>";
     if (c == '/')  return "</>";
-    if (c == '%')  return "<%>";
     if (c == '<')  return "<<>";
     if (c == '>')  return "<>>";
     if (c == '=')  return "<=>";
@@ -105,11 +104,10 @@ static std::unordered_map<std::string, std::function<void()>>& getTransitionTabl
         { "<->",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Minus);     } },
         { "<*>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Multiply);  } },
         { "</>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Divide);    } },
-        { "<%>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Modulus);   } },
         { "<<>",  []{ LexicalAnalyzer::LESS_Analyse();  } },
         { "<>>",  []{ LexicalAnalyzer::MORE_Analyse();  } },
         { "<=>",  []{ LexicalAnalyzer::EQUAL_Analyse(); } },
-        { "<!>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::Not);        } },
+        { "<!>",  []{ LexicalAnalyzer::NOT_Analyse();   } },
         { "<&>",  []{ LexicalAnalyzer::AND_Analyse();   } },
         { "<|>",  []{ LexicalAnalyzer::OR_Analyse();    } },
         { "<(>",  []{ LexicalAnalyzer::processSimpleToken(ETerminalType::LeftParen);  } },
@@ -202,11 +200,20 @@ void LexicalAnalyzer::ID_Analyse() {
     else if (identifier == "bool")   readTerminal(ETerminalType::Bool);
     else if (identifier == "output") readTerminal(ETerminalType::Output);
     else if (identifier == "input")  readTerminal(ETerminalType::Input);
-    else if (identifier == "sqrt")   readTerminal(ETerminalType::Sqrt);
     else if (identifier == "true" || identifier == "false")
         readTerminalWithValue(ETerminalType::Boolean, identifier);
     else
         readTerminalWithValue(ETerminalType::VariableName, identifier);
+}
+
+void LexicalAnalyzer::NOT_Analyse() {
+    advancePointer(); // Пропускаем '!'
+    if (_pointer < static_cast<int>(_data.size()) && currentChar() == '=') {
+        readTerminal(ETerminalType::NotEqual);
+        advancePointer(); // Пропускаем '='
+    } else {
+        readTerminal(ETerminalType::Not); // Если дальше не '=', это обычное унарное '!'
+    }
 }
 
 // Анализ строкового литерала в двойных кавычках

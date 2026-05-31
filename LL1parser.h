@@ -16,7 +16,8 @@ enum class ENonTerminal {
     Term,          // T
     TermPrime,     // Y
     Factor,        // F
-    Condition      // C
+    Condition,     // C
+    ConditionPrime // D
 };
 
 // Тип элемента, находящегося в управляющем магазине парсера

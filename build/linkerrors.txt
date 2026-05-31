@@ -1,0 +1,8 @@
+================================================================================
+Linker Errors
+Generated: 2026-05-31T09:02:22.363Z
+Total Errors: 1
+================================================================================
+
+[LNK1168] (MSVC)
+не удается открыть D:\Code\GitHubRep\transinterpreter\build\Debug\transinterpreter.exe для записи [D:\Code\GitHubRep\transinterpreter\build\transinterpreter.vcxproj]

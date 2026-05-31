@@ -13,7 +13,7 @@ enum class ETerminalType {
     // Кавычки
     DoubleQuote,
     // Присваивание и сравнение
-    Assignment, Equal, Less, Greater, LessEqual, GreaterEqual,
+    Assignment, Equal, NotEqual, Less, Greater, LessEqual, GreaterEqual,
     // Идентификаторы и ключевые слова
     VariableName, If, Else, While,
     // Типы данных

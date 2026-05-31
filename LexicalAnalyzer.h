@@ -25,6 +25,7 @@ public:
     static void EQUAL_Analyse();
     static void AND_Analyse();
     static void OR_Analyse();
+    static void NOT_Analyse(); // Анализ оператора '!' или '!='
 
 private:
     static std::string _data;
@@ -46,4 +47,5 @@ private:
     static void readTerminal(ETerminalType type);
     // Добавить терминал со значением (число, строка, булево, идентификатор)
     static void readTerminalWithValue(ETerminalType type, const std::string& value);
+
 };

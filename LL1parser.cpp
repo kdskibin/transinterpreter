@@ -20,13 +20,25 @@ void LL1Parser::initParsingTable() {
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Statement) },
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) }
     };
+
+    _parsingTable[ENonTerminal::StmtList][ETerminalType::Int] = {
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Statement) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) }
+    };
+
     // Если видим while -> это цикл (Statement)
     _parsingTable[ENonTerminal::StmtList][ETerminalType::While] = {
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Statement) },
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) }
     };
     // Если видим output -> это встроенная функция (трактуем как Statement для теста)
+
     _parsingTable[ENonTerminal::StmtList][ETerminalType::Output] = {
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Statement) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) }
+    };
+
+    _parsingTable[ENonTerminal::StmtList][ETerminalType::If] = {
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Statement) },
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) }
     };
@@ -46,8 +58,14 @@ void LL1Parser::initParsingTable() {
         { EStackItemType::Terminal,       static_cast<int>(ETerminalType::LeftBrace) },
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) },
         { EStackItemType::Terminal,       static_cast<int>(ETerminalType::RightBrace) },
-        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Semicolon) },
         { EStackItemType::SemanticAction, 5 }  
+    };
+
+    _parsingTable[ENonTerminal::Statement][ETerminalType::Int] = {
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Int) },
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::VariableName) }, // Имя переменной улетит в ОПС
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Semicolon) },
+        { EStackItemType::SemanticAction, 17 } // Новое семантическое действие для ОПС
     };
 
     // Присваивание: ID = Expression ;
@@ -59,13 +77,32 @@ void LL1Parser::initParsingTable() {
         { EStackItemType::SemanticAction, 14 } // Записать операцию ':=' в ОПС
     };
 
+    // Правило грамматики: if ( Condition ) { StmtList } else { StmtList }
+    _parsingTable[ENonTerminal::Statement][ETerminalType::If] = {
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::If) },
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::LeftParen) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Condition) },
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::RightParen) },
+        { EStackItemType::SemanticAction, 1 }, // Программа 1: генерирует 'jf' и резервирует пустышку адреса
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::LeftBrace) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) },
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::RightBrace) },
+        { EStackItemType::SemanticAction, 2 }, // Программа 2: генерирует 'j' для обхода else, заполняет адрес 'jf'
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Else) },
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::LeftBrace) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::StmtList) },
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::RightBrace) },
+        { EStackItemType::SemanticAction, 3 }  // Программа 3: заполняет адрес безусловного перехода 'j'
+    };
+
     // Оператор вывода для теста: output ( Expression ) ;
     _parsingTable[ENonTerminal::Statement][ETerminalType::Output] = {
         { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Output) },
         { EStackItemType::Terminal,       static_cast<int>(ETerminalType::LeftParen) },
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Expression) },
         { EStackItemType::Terminal,       static_cast<int>(ETerminalType::RightParen) },
-        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Semicolon) }
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Semicolon) },
+        { EStackItemType::SemanticAction, 15 } // <-- Семантическое действие для ОПС
     };
 
     // ---- МАТЕМАТИЧЕСКИЕ ВЫРАЖЕНИЯ: S -> T U ----
@@ -91,6 +128,12 @@ void LL1Parser::initParsingTable() {
         { EStackItemType::SemanticAction, 11 }, 
         { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::ExpressionPrime) }
     };
+
+    _parsingTable[ENonTerminal::ExpressionPrime][ETerminalType::Less] = {};
+    _parsingTable[ENonTerminal::ExpressionPrime][ETerminalType::Greater] = {};
+    _parsingTable[ENonTerminal::ExpressionPrime][ETerminalType::Equal] = {};
+    _parsingTable[ENonTerminal::ExpressionPrime][ETerminalType::NotEqual] = {};
+
     _parsingTable[ENonTerminal::ExpressionPrime][ETerminalType::Semicolon] = {};  
     _parsingTable[ENonTerminal::ExpressionPrime][ETerminalType::RightParen] = {}; 
 
@@ -122,6 +165,47 @@ void LL1Parser::initParsingTable() {
     _parsingTable[ENonTerminal::TermPrime][ETerminalType::Semicolon] = {};
     _parsingTable[ENonTerminal::TermPrime][ETerminalType::RightParen] = {};
 
+    _parsingTable[ENonTerminal::TermPrime][ETerminalType::Less] = {};
+    _parsingTable[ENonTerminal::TermPrime][ETerminalType::Greater] = {};
+    _parsingTable[ENonTerminal::TermPrime][ETerminalType::Equal] = {};
+    _parsingTable[ENonTerminal::TermPrime][ETerminalType::NotEqual] = {};
+
+    // ---- ПРАВИЛА ДЛЯ УСЛОВИЙ: Condition -> Expression ConditionPrime ----
+    _parsingTable[ENonTerminal::Condition][ETerminalType::Number] = {
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Expression) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::ConditionPrime) }
+    };
+    _parsingTable[ENonTerminal::Condition][ETerminalType::VariableName] = {
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Expression) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::ConditionPrime) }
+    };
+
+    // ---- ХВОСТ УСЛОВИЯ: ConditionPrime -> < Expression <Прог_20> | > Expression <Прог_21> | == Expression <Прог_22> ----
+    _parsingTable[ENonTerminal::ConditionPrime][ETerminalType::Less] = {
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Less) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Expression) },
+        { EStackItemType::SemanticAction, 18 } // Пишем оператор '<' в ОПС
+    };
+    _parsingTable[ENonTerminal::ConditionPrime][ETerminalType::Greater] = {
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Greater) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Expression) },
+        { EStackItemType::SemanticAction, 19 } // Пишем оператор '>' в ОПС
+    };
+    _parsingTable[ENonTerminal::ConditionPrime][ETerminalType::Equal] = {
+        { EStackItemType::Terminal,       static_cast<int>(ETerminalType::Equal) },
+        { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Expression) },
+        { EStackItemType::SemanticAction, 20 } // Пишем оператор '==' в ОПС
+    };
+
+    _parsingTable[ENonTerminal::ConditionPrime][ETerminalType::NotEqual] = {
+    { EStackItemType::Terminal,       static_cast<int>(ETerminalType::NotEqual) },
+    { EStackItemType::NonTerminal,    static_cast<int>(ENonTerminal::Expression) },
+    { EStackItemType::SemanticAction, 16 } // Записать операцию '!=' в ОПС
+    };
+    // (При необходимости добавь аналогично правила для LessEqual, GreaterEqual, LessGreater/NotEqual)
+     _parsingTable[ENonTerminal::ConditionPrime][ETerminalType::RightParen] = {}; // Эпсилон-правило
+     _parsingTable[ENonTerminal::ConditionPrime][ETerminalType::Semicolon] = {}; // Эпсилон-правило
+        // Неуверен в 2 выше перечисленных эпсилон-правилах, проверь по грамматике. Возможно, их нужно убрать, если после условия всегда должен идти оператор (например, в if или while), а не точка с запятой или закрывающая скобка.
     // ---- ФАКТОРЫ: F -> ID | INT ----
     _parsingTable[ENonTerminal::Factor][ETerminalType::VariableName] = {
         { EStackItemType::Terminal,       static_cast<int>(ETerminalType::VariableName) }
@@ -239,6 +323,35 @@ void LL1Parser::executeSemanticAction(int actionId) {
             _rpn.push_back({ "jf", false });  // Операция условного перехода
             break;
 
+        case 2: { // Программа 2 (Конец блока IF, перед блоком ELSE)
+            // 1. Извлекаем из стека меток адрес пустышки условного перехода 'jf', созданной в case 1
+            int ifFalseLabelAddress = _labelStack.top(); _labelStack.pop();
+            
+            // 2. Генерируем в ОПС безусловный переход 'j', который выполнится в конце блока IF, 
+            // чтобы перепрыгнуть ветку ELSE. Тоже резервируем пустышку.
+            _labelStack.push(k);             // Запоминаем текущий индекс ОПС в стек меток
+            _rpn.push_back({ "__", true });  // Пустышка адреса для выхода из всего IF-ELSE
+            _rpn.push_back({ "j", false });   // Операция безусловного перехода
+            
+            // 3. Заполняем адрес 'jf' истинным значением. Куда прыгать, если условие ложно?
+            // Прямо сюда — на первую команду блока ELSE, которая пойдет сразу за операцией 'j'!
+            int elseStartAddress = static_cast<int>(_rpn.size());
+            _rpn[ifFalseLabelAddress].value = std::to_string(elseStartAddress);
+            break;
+        }
+
+        case 3: { // Программа 3 (Конец всего оператора IF-ELSE, после блока ELSE)
+            // 1. Достаем адрес пустышки перехода 'j', созданной в case 2
+            int exitLabelAddress = _labelStack.top(); _labelStack.pop();
+            
+            // 2. Вычисляем адрес команды, которая идет сразу за конструкцией if-else
+            int nextCommandAddress = static_cast<int>(_rpn.size());
+            
+            // 3. Заполняем пустышку истинным адресом выхода
+            _rpn[exitLabelAddress].value = std::to_string(nextCommandAddress);
+            break;
+        }
+
         case 4: // Программа 4 (Перед проверкой условия цикла while)
             _labelStack.push(k);              // Запоминаем точку возврата на проверку условия
             break;
@@ -265,6 +378,12 @@ void LL1Parser::executeSemanticAction(int actionId) {
         case 12: _rpn.push_back({ "*", false }); break;
         case 13: _rpn.push_back({ "/", false }); break;
         case 14: _rpn.push_back({ ":=", false }); break;
+        case 15: _rpn.push_back({ "Output", false }); break;
+        case 16: _rpn.push_back({ "!=", false }); break;
+        case 17: _rpn.push_back({ "decl_var", false }); break; // Объявление переменной // Отправляем команду в ОПС
+        case 18: _rpn.push_back({ "<", false }); break;
+        case 19: _rpn.push_back({ ">", false }); break;
+        case 20: _rpn.push_back({ "==", false }); break;
     }
 }
 

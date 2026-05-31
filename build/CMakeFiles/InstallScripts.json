@@ -1,7 +1,7 @@
 {
 	"InstallScripts" : 
 	[
-		"/mnt/01DBD3B8458BBAB0/Projects/transinterpreter/cpp_code/build/cmake_install.cmake"
+		"D:/Code/GitHubRep/transinterpreter/build/cmake_install.cmake"
 	],
 	"Parallel" : false
 }
