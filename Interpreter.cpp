@@ -82,16 +82,16 @@ void Interpreter::execute(const std::vector<RpnElement>& rpn) {
             variables[varName] = val; // Записываем значение в память
         }
         // 4. Безусловный переход
-        else if (op == "j") {
-            int addr = std::stoi(evalStack.top()); evalStack.pop();
-            ip = addr - 1; 
+        else if (op == "JMP") {
+            int addr = std::stoi(rpn[ip-1].value);
+            ip = addr - 1;
         }
         // 5. Условный переход по лжи (jump if false)
-        else if (op == "jf") {
-            int addr = std::stoi(evalStack.top()); evalStack.pop();
+        else if (op == "JF") {
+            int addr = std::stoi(rpn[ip-1].value);
             int cond = getValue(evalStack.top()); evalStack.pop();
-            if (cond == 0) { 
-                ip = addr - 1; 
+            if (cond == 0) {
+                ip = addr - 1;
             }
         }
         // 6. Вывод переменной на экран

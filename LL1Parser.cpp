@@ -320,7 +320,7 @@ void LL1Parser::executeSemanticAction(int actionId) {
         case 1: // Программа 1 (Встретили 'do' или тело 'if')
             _labelStack.push(k);              // Сохраняем индекс, где будет лежать адрес перехода
             _rpn.push_back({ "__", true });   // Резервируем место под адрес (пустышка)
-            _rpn.push_back({ "jf", false });  // Операция условного перехода
+            _rpn.push_back({ "JF", false });  // Операция условного перехода
             break;
 
         case 2: { // Программа 2 (Конец блока IF, перед блоком ELSE)
@@ -331,7 +331,7 @@ void LL1Parser::executeSemanticAction(int actionId) {
             // чтобы перепрыгнуть ветку ELSE. Тоже резервируем пустышку.
             _labelStack.push(k);             // Запоминаем текущий индекс ОПС в стек меток
             _rpn.push_back({ "__", true });  // Пустышка адреса для выхода из всего IF-ELSE
-            _rpn.push_back({ "j", false });   // Операция безусловного перехода
+            _rpn.push_back({ "JMP", false });   // Операция безусловного перехода
             
             // 3. Заполняем адрес 'jf' истинным значением. Куда прыгать, если условие ложно?
             // Прямо сюда — на первую команду блока ELSE, которая пойдет сразу за операцией 'j'!
@@ -362,7 +362,7 @@ void LL1Parser::executeSemanticAction(int actionId) {
             
             // 1. Генерируем безусловный прыжок наверх, к условию
             _rpn.push_back({ std::to_string(loopStartAddress), true });
-            _rpn.push_back({ "j", false });
+            _rpn.push_back({ "JMP", false });
             
             // 2. Рассчитываем адрес выхода (это текущая позиция в ОПС сразу за операцией 'j')
             int nextCommandAddress = static_cast<int>(_rpn.size());
