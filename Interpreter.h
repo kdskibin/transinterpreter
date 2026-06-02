@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "LL1parser.h" // Подключаем, чтобы компилятор знал структуру RpnElement
+#include "LL1Parser.h" // Подключаем, чтобы компилятор знал структуру RpnElement
 
 class Interpreter {
 public:

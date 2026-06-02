@@ -12,7 +12,7 @@ set(SOURCES
     main.cpp
     FileReader.cpp
     LexicalAnalyzer.cpp
-    LL1parser.cpp
+    LL1Parser.cpp
     Interpreter.cpp
 )
 

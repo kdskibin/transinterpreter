@@ -1,3 +1,0 @@
-D:/Code/GitHubRep/transinterpreter/build/CMakeFiles/transinterpreter.dir
-D:/Code/GitHubRep/transinterpreter/build/CMakeFiles/ALL_BUILD.dir
-D:/Code/GitHubRep/transinterpreter/build/CMakeFiles/ZERO_CHECK.dir
