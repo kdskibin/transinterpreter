@@ -1,1 +1,0 @@
-/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/transinterpreter.dir/link.d CMakeFiles/transinterpreter.dir/main.cpp.o CMakeFiles/transinterpreter.dir/FileReader.cpp.o CMakeFiles/transinterpreter.dir/LexicalAnalyzer.cpp.o CMakeFiles/transinterpreter.dir/LL1Parser.cpp.o CMakeFiles/transinterpreter.dir/Interpreter.cpp.o -o transinterpreter

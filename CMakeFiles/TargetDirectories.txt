@@ -1,3 +1,0 @@
-/mnt/01DBD3B8458BBAB0/Projects/transinterpreter/CMakeFiles/transinterpreter.dir
-/mnt/01DBD3B8458BBAB0/Projects/transinterpreter/CMakeFiles/edit_cache.dir
-/mnt/01DBD3B8458BBAB0/Projects/transinterpreter/CMakeFiles/rebuild_cache.dir

@@ -1,7 +1,0 @@
-{
-    int a;
-    int b;
-    a = 1 + 2;
-    b = a * 3;
-    output(b);
-}
