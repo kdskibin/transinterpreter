@@ -51,14 +51,14 @@ static const std::vector<int> ALL_TOKENS = {
     TOKEN_COMMA, TOKEN_SEMICOLON,
     TOKEN_IF, TOKEN_THEN, TOKEN_ELSE, TOKEN_WHILE, TOKEN_DO,
     TOKEN_BEGIN, TOKEN_END, TOKEN_READ, TOKEN_WRITE,
-    TOKEN_INT, TOKEN_REAL, TOKEN_SQRT, TOKEN_ABS, TOKEN_EOF
+    TOKEN_INT, TOKEN_REAL, TOKEN_EOF
 };
 
 // Начальные токены выражения (FIRST(S) = FIRST(T) = FIRST(F))
 static const std::vector<int> FIRST_S = {
     TOKEN_LPAREN, TOKEN_PLUS, TOKEN_MINUS,
     TOKEN_ID, TOKEN_INT_CONST, TOKEN_REAL_CONST,
-    TOKEN_SQRT, TOKEN_ABS
+    // (нет математических функций)
 };
 
 // ============================================================
@@ -203,16 +203,8 @@ void Parser::initTable() {
     parseTable[{NT_C, TOKEN_INT_CONST}] = {
         T(TOKEN_INT_CONST), A(ACT_OPERAND), N(NT_VM), N(NT_U), N(NT_D)
     };
-    parseTable[{NT_C, TOKEN_REAL_CONST}] = {
+   parseTable[{NT_C, TOKEN_REAL_CONST}] = {
         T(TOKEN_REAL_CONST), A(ACT_OPERAND), N(NT_VM), N(NT_U), N(NT_D)
-    };
-    parseTable[{NT_C, TOKEN_SQRT}] = {
-        T(TOKEN_SQRT), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN),
-        A(ACT_SQRT), N(NT_VM), N(NT_U), N(NT_D)
-    };
-    parseTable[{NT_C, TOKEN_ABS}] = {
-        T(TOKEN_ABS), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN),
-        A(ACT_ABS), N(NT_VM), N(NT_U), N(NT_D)
     };
 
     // ------ NT_D: операция сравнения + правый операнд ------
@@ -244,16 +236,8 @@ void Parser::initTable() {
     parseTable[{NT_S, TOKEN_INT_CONST}] = {
         T(TOKEN_INT_CONST), A(ACT_OPERAND), N(NT_VM), N(NT_U)
     };
-    parseTable[{NT_S, TOKEN_REAL_CONST}] = {
+   parseTable[{NT_S, TOKEN_REAL_CONST}] = {
         T(TOKEN_REAL_CONST), A(ACT_OPERAND), N(NT_VM), N(NT_U)
-    };
-    parseTable[{NT_S, TOKEN_SQRT}] = {
-        T(TOKEN_SQRT), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN),
-        A(ACT_SQRT), N(NT_VM), N(NT_U)
-    };
-    parseTable[{NT_S, TOKEN_ABS}] = {
-        T(TOKEN_ABS), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN),
-        A(ACT_ABS), N(NT_VM), N(NT_U)
     };
 
     // ------ NT_U: хвост выражения (U → + TU | - TU | λ) ------
@@ -278,16 +262,8 @@ void Parser::initTable() {
     parseTable[{NT_T, TOKEN_INT_CONST}] = {
         T(TOKEN_INT_CONST), A(ACT_OPERAND), N(NT_VM)
     };
-    parseTable[{NT_T, TOKEN_REAL_CONST}] = {
+  parseTable[{NT_T, TOKEN_REAL_CONST}] = {
         T(TOKEN_REAL_CONST), A(ACT_OPERAND), N(NT_VM)
-    };
-    parseTable[{NT_T, TOKEN_SQRT}] = {
-        T(TOKEN_SQRT), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN),
-        A(ACT_SQRT), N(NT_VM)
-    };
-    parseTable[{NT_T, TOKEN_ABS}] = {
-        T(TOKEN_ABS), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN),
-        A(ACT_ABS), N(NT_VM)
     };
 
     // ------ NT_VM: хвост терма (V → * FV | / FV | λ) ------
@@ -310,13 +286,7 @@ void Parser::initTable() {
         T(TOKEN_ID), A(ACT_OPERAND), N(NT_H)
     };
     parseTable[{NT_F, TOKEN_INT_CONST}]  = { T(TOKEN_INT_CONST),  A(ACT_OPERAND) };
-    parseTable[{NT_F, TOKEN_REAL_CONST}] = { T(TOKEN_REAL_CONST), A(ACT_OPERAND) };
-    parseTable[{NT_F, TOKEN_SQRT}] = {
-        T(TOKEN_SQRT), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN), A(ACT_SQRT)
-    };
-    parseTable[{NT_F, TOKEN_ABS}] = {
-        T(TOKEN_ABS), T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN), A(ACT_ABS)
-    };
+  parseTable[{NT_F, TOKEN_REAL_CONST}] = { T(TOKEN_REAL_CONST), A(ACT_OPERAND) };
 
     // ------ NT_G: операнд унарных операций (без +/- как унарных) ------
     parseTable[{NT_G, TOKEN_LPAREN}]    = { T(TOKEN_LPAREN), N(NT_S), T(TOKEN_RPAREN) };
@@ -429,9 +399,7 @@ void Parser::executeAction(int action) {
         case ACT_READ:  ops.addOperation(OP_READ,  lastToken.line, lastToken.column); break;
         case ACT_WRITE: ops.addOperation(OP_WRITE, lastToken.line, lastToken.column); break;
 
-        // ---- Стандартные функции ----
-        case ACT_SQRT: ops.addOperation(OP_SQRT, lastToken.line, lastToken.column); break;
-        case ACT_ABS:  ops.addOperation(OP_ABS,  lastToken.line, lastToken.column); break;
+      // ---- Стандартные функции ----
 
         // ---- Программа 1: условный переход (if/while) ----
         // Добавляем метку-заглушку и JF; позицию заглушки кладём в стек меток.

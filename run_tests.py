@@ -49,9 +49,9 @@ print("=" * 60)
 print()
 
 # --- Успешные тесты ---
-run("1.1 Гипотенуза (3,4 -> 5)",      "tests/test1.1.txt", "3\n4",            "5",      expect_fail=False)
+run("1.1 Сумма       (3,4 -> 7)",      "tests/test1.1.txt", "3\n4",            "7",      expect_fail=False)
 run("1.2 Макс из 3  (5,3,8 -> 8)",     "tests/test1.2.txt", "5\n3\n8",         "8",      expect_fail=False)
-run("1.3 abs+sqrt   (4,3 -> 2)",       "tests/test1.3.txt", "4.0\n3.0",        "2",      expect_fail=False)
+run("1.3 Разность     (4,3 -> 1)",       "tests/test1.3.txt", "4.0\n3.0",        "1",      expect_fail=False)
 run("1.4 if/else    (5,3 -> 3.2)",     "tests/test1.4.txt", "5.0\n3.0",        "3.2",    expect_fail=False)
 run("2   Сортировка [5,3,1,4,1,5]",    "tests/test2.txt",   "5\n3\n1\n4\n1\n5",  "1",      expect_fail=False)
 

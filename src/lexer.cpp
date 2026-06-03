@@ -77,8 +77,7 @@ Lexer::Lexer(const std::string& filename) : pos(0), line(1), column(1) {
     keywords["do"]    = TOKEN_DO;    keywords["begin"] = TOKEN_BEGIN;
     keywords["end"]   = TOKEN_END;   keywords["read"]  = TOKEN_READ;
     keywords["write"] = TOKEN_WRITE; keywords["int"]   = TOKEN_INT;
-    keywords["real"]  = TOKEN_REAL;  keywords["sqrt"]  = TOKEN_SQRT;
-    keywords["abs"]   = TOKEN_ABS;
+    keywords["real"]  = TOKEN_REAL;
 }
 
 void Lexer::advanceChar() {

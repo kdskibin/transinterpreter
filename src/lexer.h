@@ -39,8 +39,6 @@ enum TokenType {
     TOKEN_WRITE,
     TOKEN_INT,
     TOKEN_REAL,
-    TOKEN_SQRT,
-    TOKEN_ABS,
     TOKEN_EOF,
     TOKEN_UNKNOWN
 };

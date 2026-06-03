@@ -53,8 +53,6 @@ enum SemAction {
     ACT_LT, ACT_GT, ACT_LE, ACT_GE, ACT_EQ, ACT_NE,
     ACT_READ,       // read
     ACT_WRITE,      // write
-    ACT_SQRT,       // sqrt
-    ACT_ABS,        // abs
     // Семантические программы 1–5
     ACT_PROG1,  // создать метку-заглушку и JF (начало условия if/while)
     ACT_PROG2,  // обработать else (создать J, заполнить предыдущую JF-метку)

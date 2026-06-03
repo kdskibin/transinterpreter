@@ -249,29 +249,13 @@ void Interpreter::executeIO(OperationType op, const OPSElement& elem) {
     }
 }
 
-// Выполнение встроенных функций (sqrt, abs) и унарного минуса
+// Выполнение унарного минуса
 void Interpreter::executeFunction(OperationType op, const OPSElement& elem) {
     Value arg      = deref(evalStack.top()); evalStack.pop();
     double arg_val = arg.toReal();
-    double result;
+    double result = -arg_val;
 
-    switch (op) {
-        case OP_SQRT:
-            if (arg_val < 0)
-                throw RuntimeError("Отрицательный аргумент для sqrt", elem.source_line, elem.source_column);
-            result = std::sqrt(arg_val);
-            break;
-        case OP_ABS:
-            result = std::abs(arg_val);
-            break;
-        case OP_NEG:
-            result = -arg_val;
-            break;
-        default:
-            throw RuntimeError("Неизвестная функция", elem.source_line, elem.source_column);
-    }
-
-    if (arg.type == Value::REAL || op == OP_SQRT)
+    if (arg.type == Value::REAL)
         evalStack.push(Value::makeReal(result));
     else
         evalStack.push(Value::makeInt((int)result));
@@ -294,7 +278,7 @@ void Interpreter::executeOperation(const OPSElement& elem) {
         executeJump(elem);
     else if (op == OP_READ || op == OP_WRITE)
         executeIO(op, elem);
-    else if (op == OP_SQRT || op == OP_ABS || op == OP_NEG)
+    else if (op == OP_NEG)
         executeFunction(op, elem);
     else
         throw RuntimeError("Неизвестная операция", elem.source_line, elem.source_column);

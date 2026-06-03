@@ -45,7 +45,7 @@ void OPS::print() const {
     const char* op_names[] = {
         "+", "-", "*", "/", "-'", ":=", "i",
         "<", ">", "<=", ">=", "=", "<>",
-        "jf", "j", "read", "write", "sqrt", "abs"
+        "jf", "j", "read", "write"
     };
     
     for (size_t i = 0; i < elements.size(); i++) {

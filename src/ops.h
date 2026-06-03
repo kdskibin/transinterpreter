@@ -34,9 +34,7 @@ enum OperationType {
     OP_JF,       // условный переход (jump if false)
     OP_J,        // безусловный переход
     OP_READ,     // read
-    OP_WRITE,    // write
-    OP_SQRT,     // sqrt
-    OP_ABS       // abs
+    OP_WRITE     // write
 };
 
 // Элемент ОПС
