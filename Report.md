@@ -224,7 +224,7 @@ K (>=)         Z*      Z*      Z*      Z*      Z*      Z*      Z*      Z*    Z* 
 ##### Таблица LL(1) анализатора и генератора ОПС
 
 | | + | – | * | / | ( | ) | { | } | [ | ] | , | ; | = | <> | while | if | else | a | k | < | > | <= | >= | ⊥ |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | P | | | | | | | { L } □□□ | | | | | | | | | | | | | | | | | | | | | |
 | L | | | | | | | | λ | | | | λ | | while ( C ) { L } ; L 4□□□1□5□□ | if ( C ) { L } else { L } ; L □□□□1□2□□□3□□ | λ | ID H = S ; L a□□:=□ | | | | | | | | | | λ |
 | S | + G Y U □□□□ | – G Z Y U □□–'□□ | | | ( S ) Y U □□□□□ | | | | | | | | | | | | ID H Y U a□□□ | INT Y U k□□ | | | | | | | | | | |
@@ -293,3 +293,92 @@ x  y  10  +  2  *  :=
 a  b  <  jf  k1  a  write  j  k2
 ```
 (где k1, k2 — позиции меток, вставляемые при генерации ОПС)
+
+
+#### 6) Формат ОПС
+
+| Роль элемента | ERPType (основные представители) |
+|--------------|----------------------------------|
+| Адрес (переменная) | `A_VariableName` |
+| Константа (число/строка/bool) | `A_Number`, `A_TextLine`, `A_Boolean` |
+| Операция (арифм., логич., присв.) | `F_Plus`, `F_Minus`, `F_Multiply`, `F_Divide`, `F_Modulus`, `F_Equal`, `F_Less`, `F_Greater`, `F_LessEqual`, `F_GreaterEqual`, `F_And`, `F_Or`, `F_Not`, `F_Assignment` |
+| Метка (для переходов) | `M_Mark` | `RPNMark` |
+| Условный переход по лжи (УПЛ) | `F_ConditionalJumpToMark` |
+| Безусловный переход | `F_UnconditionalJumpToMark` |
+| Индексация массива | `F_Index` |
+| Встроенная функция ввода/вывода | `F_Output`, `F_Input` |
+| Встроенная математическая функция | `F_Sqrt`, `F_Pow` |
+| Объявление переменной | `F_Int`, `F_String`, `F_Bool` |
+| Объявление массива | `F_IntArray`, `F_StringArray`, `F_BoolArray` |
+
+
+```cpp
+#include "RPNSymbol.h"
+#include <vector>
+#include <memory>
+
+using namespace Compiler;
+using namespace std;
+
+vector<unique_ptr<RPNSymbol>> buildExample1() {
+    // x = (y + 10) * 2;
+    vector<unique_ptr<RPNSymbol>> rpn;
+
+    // адреса (переменные)
+    auto x = make_unique<RPNIdentifier>(ERPNType::A_VariableName);
+    x->Name = "x";
+    auto y = make_unique<RPNIdentifier>(ERPNType::A_VariableName);
+    y->Name = "y";
+
+    // константы
+    auto k10 = make_unique<RPNNumber>(ERPNType::A_Number);
+    k10->Data = 10;
+    auto k2 = make_unique<RPNNumber>(ERPNType::A_Number);
+    k2->Data = 2;
+
+    rpn.push_back(move(x));                                        // a: переменная x (цель присваивания)
+    rpn.push_back(move(y));                                        // a: переменная y
+    rpn.push_back(move(k10));                                      // k: 10
+    rpn.push_back(make_unique<RPNSymbol>(ERPNType::F_Plus));       // O: +
+    rpn.push_back(move(k2));                                       // k: 2
+    rpn.push_back(make_unique<RPNSymbol>(ERPNType::F_Multiply));   // O: *
+    rpn.push_back(make_unique<RPNSymbol>(ERPNType::F_Assignment)); // O: =
+
+    return rpn;
+}
+
+vector<unique_ptr<RPNSymbol>> buildExample2() {
+    // if (a < b) { output(a); }
+    vector<unique_ptr<RPNSymbol>> rpn;
+
+    auto a = make_unique<RPNIdentifier>(ERPNType::A_VariableName);
+    a->Name = "a";
+    auto b = make_unique<RPNIdentifier>(ERPNType::A_VariableName);
+    b->Name = "b";
+
+    // условие
+    rpn.push_back(move(a));
+    rpn.push_back(move(b));
+    rpn.push_back(make_unique<RPNSymbol>(ERPNType::F_Less));    // O: <
+
+    // метка для перехода при ложном условии
+    auto ifMark = make_unique<RPNMark>(ERPNType::M_Mark, EMarkType::IfMark);
+    // позиция будет установлена позже
+    rpn.push_back(move(ifMark));                                // m: метка
+    rpn.push_back(make_unique<RPNSymbol>(ERPNType::F_ConditionalJumpToMark)); // УПЛ
+
+    // тело if: output(a)
+    auto a2 = make_unique<RPNIdentifier>(ERPNType::A_VariableName);
+    a2->Name = "a";
+    rpn.push_back(move(a2));                                    // a
+    rpn.push_back(make_unique<RPNSymbol>(ERPNType::F_Output));  // f: write
+
+    // теперь фиксируем позицию метки (конец блока if)
+    // в реальном коде это делает RPNTranslator::WriteMarks
+    size_t labelPos = 3; // индекс, где лежит RPNMark
+    auto* mark = static_cast<RPNMark*>(rpn[labelPos].get());
+    mark->Position = rpn.size();   // метка указывает на позицию сразу за последней операцией
+
+    return rpn;
+}
+```
