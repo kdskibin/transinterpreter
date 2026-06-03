@@ -4,7 +4,28 @@
 #include <iomanip>
 
 Interpreter::Interpreter(const OPS& ops, const SymbolTable& symbols)
-    : ops(ops), symbols(symbols), pc(0) {}
+    : ops(ops), symbols(symbols), debug(false), pc(0) {}
+
+Interpreter::Interpreter(const OPS& ops, const SymbolTable& symbols, bool debug)
+    : ops(ops), symbols(symbols), debug(debug), pc(0) {}
+
+void Interpreter::printStack() const {
+    std::cout << "    стек: [";
+    for (size_t i = 0; i < evalStack.size(); i++) {
+        if (i > 0) std::cout << ", ";
+        const Value& v = evalStack[i];
+        std::cout << v.typeName();
+        if (v.type == Value::INT)
+            std::cout << "(" << v.data.int_val << ")";
+        else if (v.type == Value::REAL)
+            std::cout << "(" << v.data.real_val << ")";
+        else if (v.type == Value::BOOL)
+            std::cout << "(" << (v.data.bool_val ? "true" : "false") << ")";
+        else if (v.type == Value::ARRAY_REF || v.type == Value::VAR_INT_REF || v.type == Value::VAR_REAL_REF)
+            std::cout << "(id=" << v.data.array_ref.array_id << ", idx=" << v.data.array_ref.index << ")";
+    }
+    std::cout << "]\n";
+}
 
 // Разыменование ссылки на переменную.
 // Если на стеке лежит ссылка (VAR_INT_REF / VAR_REAL_REF / ARRAY_REF) -
@@ -84,31 +105,31 @@ Value Interpreter::getOperandValue(const OPSElement& elem) {
 }
 
 // Запись значения в переменную или элемент массива
-void Interpreter::setVariableValue(const Value& var_ref, const Value& value) {
+void Interpreter::setVariableValue(const Value& var_ref, const Value& value, int line, int col) {
     if (var_ref.type == Value::ARRAY_REF) {
         int array_id = var_ref.data.array_ref.array_id;
         int index    = var_ref.data.array_ref.index;
 
         if (int_arrays.find(array_id) != int_arrays.end()) {
             if (index < 0 || index >= (int)int_arrays[array_id].size())
-                throw RuntimeError("Индекс массива выходит за границы", 0, 0);
+                throw RuntimeError("Индекс массива выходит за границы", line, col);
             int_arrays[array_id][index] = value.toInt();
         } else if (real_arrays.find(array_id) != real_arrays.end()) {
             if (index < 0 || index >= (int)real_arrays[array_id].size())
-                throw RuntimeError("Индекс массива выходит за границы", 0, 0);
+                throw RuntimeError("Индекс массива выходит за границы", line, col);
             real_arrays[array_id][index] = value.toReal();
         } else {
-            throw RuntimeError("Массив не инициализирован", 0, 0);
+            throw RuntimeError("Массив не инициализирован", line, col);
         }
     } else {
-        throw RuntimeError("Ожидалась переменная или элемент массива", 0, 0);
+        throw RuntimeError("Ожидалась переменная или элемент массива", line, col);
     }
 }
 
 // Выполнение арифметической операции (+, -, *, /)
 void Interpreter::executeArithmetic(OperationType op, const OPSElement& elem) {
-    Value b = deref(evalStack.top()); evalStack.pop();
-    Value a = deref(evalStack.top()); evalStack.pop();
+    Value b = deref(evalStack.back()); evalStack.pop_back();
+    Value a = deref(evalStack.back()); evalStack.pop_back();
 
     bool is_real = (a.type == Value::REAL || b.type == Value::REAL);
     double a_val = a.toReal();
@@ -128,14 +149,14 @@ void Interpreter::executeArithmetic(OperationType op, const OPSElement& elem) {
             throw RuntimeError("Неизвестная арифметическая операция", elem.source_line, elem.source_column);
     }
 
-    if (is_real) evalStack.push(Value::makeReal(result));
-    else         evalStack.push(Value::makeInt((int)result));
+    if (is_real) evalStack.push_back(Value::makeReal(result));
+    else         evalStack.push_back(Value::makeInt((int)result));
 }
 
 // Выполнение операции сравнения (<, >, <=, >=, =, <>)
 void Interpreter::executeComparison(OperationType op, const OPSElement& elem) {
-    Value b = deref(evalStack.top()); evalStack.pop();
-    Value a = deref(evalStack.top()); evalStack.pop();
+    Value b = deref(evalStack.back()); evalStack.pop_back();
+    Value a = deref(evalStack.back()); evalStack.pop_back();
 
     double a_val = a.toReal();
     double b_val = b.toReal();
@@ -152,14 +173,14 @@ void Interpreter::executeComparison(OperationType op, const OPSElement& elem) {
             throw RuntimeError("Неизвестная операция сравнения", elem.source_line, elem.source_column);
     }
 
-    evalStack.push(Value::makeBool(result));
+    evalStack.push_back(Value::makeBool(result));
 }
 
 // Выполнение присваивания (:=)
 // Левый операнд должен быть ссылкой на переменную или элемент массива
 void Interpreter::executeAssignment(const OPSElement& elem) {
-    Value value = deref(evalStack.top()); evalStack.pop();
-    Value var   = evalStack.top();        evalStack.pop();
+    Value value = deref(evalStack.back()); evalStack.pop_back();
+    Value var   = evalStack.back();        evalStack.pop_back();
 
     if (var.type == Value::VAR_INT_REF) {
         int id = var.data.array_ref.array_id;
@@ -168,7 +189,7 @@ void Interpreter::executeAssignment(const OPSElement& elem) {
         int id = var.data.array_ref.array_id;
         real_vars[id] = value.toReal();
     } else if (var.type == Value::ARRAY_REF) {
-        setVariableValue(var, value);
+        setVariableValue(var, value, elem.source_line, elem.source_column);
     } else {
         throw RuntimeError("Ожидалась переменная в левой части :=", elem.source_line, elem.source_column);
     }
@@ -176,8 +197,8 @@ void Interpreter::executeAssignment(const OPSElement& elem) {
 
 // Выполнение индексирования массива (операция i)
 void Interpreter::executeIndexing(const OPSElement& elem) {
-    Value index_val = deref(evalStack.top()); evalStack.pop();
-    Value array_ref = evalStack.top();        evalStack.pop();
+    Value index_val = deref(evalStack.back()); evalStack.pop_back();
+    Value array_ref = evalStack.back();        evalStack.pop_back();
 
     if (array_ref.type != Value::ARRAY_REF) {
         throw RuntimeError("Ожидался массив", elem.source_line, elem.source_column);
@@ -187,26 +208,26 @@ void Interpreter::executeIndexing(const OPSElement& elem) {
     result.type = Value::ARRAY_REF;
     result.data.array_ref.array_id = array_ref.data.array_ref.array_id;
     result.data.array_ref.index    = index_val.toInt();
-    evalStack.push(result);
+    evalStack.push_back(result);
 }
 
 // Выполнение переходов (jf - условный, j - безусловный)
 void Interpreter::executeJump(const OPSElement& elem) {
     if (elem.value.operation == OP_JF) {
-        Value label_val = evalStack.top();        evalStack.pop();
-        Value condition = deref(evalStack.top()); evalStack.pop();
+        Value label_val = evalStack.back();        evalStack.pop_back();
+        Value condition = deref(evalStack.back()); evalStack.pop_back();
         if (!condition.data.bool_val)
             pc = label_val.toInt() - 1; // -1 т.к. в конце цикла будет pc++
     } else if (elem.value.operation == OP_J) {
-        Value label_val = evalStack.top(); evalStack.pop();
+        Value label_val = evalStack.back(); evalStack.pop_back();
         pc = label_val.toInt() - 1;
     }
 }
 
 // Выполнение операций ввода (r) и вывода (w)
-void Interpreter::executeIO(OperationType op, const OPSElement& elem) {
+void Interpreter::executeIO(OperationType op, const OPSElement&) {
     if (op == OP_READ) {
-        Value var = evalStack.top(); evalStack.pop();
+        Value var = evalStack.back(); evalStack.pop_back();
 
         if (var.type == Value::VAR_INT_REF) {
             int id = var.data.array_ref.array_id;
@@ -231,7 +252,7 @@ void Interpreter::executeIO(OperationType op, const OPSElement& elem) {
         }
 
     } else if (op == OP_WRITE) {
-        Value val = deref(evalStack.top()); evalStack.pop();
+        Value val = deref(evalStack.back()); evalStack.pop_back();
 
         if (val.type == Value::INT) {
             std::cout << val.data.int_val << std::endl;
@@ -250,15 +271,15 @@ void Interpreter::executeIO(OperationType op, const OPSElement& elem) {
 }
 
 // Выполнение унарного минуса
-void Interpreter::executeFunction(OperationType op, const OPSElement& elem) {
-    Value arg      = deref(evalStack.top()); evalStack.pop();
+void Interpreter::executeFunction(OperationType /*op*/, const OPSElement& /*elem*/) {
+    Value arg      = deref(evalStack.back()); evalStack.pop_back();
     double arg_val = arg.toReal();
     double result = -arg_val;
 
     if (arg.type == Value::REAL)
-        evalStack.push(Value::makeReal(result));
+        evalStack.push_back(Value::makeReal(result));
     else
-        evalStack.push(Value::makeInt((int)result));
+        evalStack.push_back(Value::makeInt((int)result));
 }
 
 // Определение типа операции и вызов соответствующего обработчика
@@ -284,23 +305,61 @@ void Interpreter::executeOperation(const OPSElement& elem) {
         throw RuntimeError("Неизвестная операция", elem.source_line, elem.source_column);
 }
 
+static const char* opName(OperationType op) {
+    static const char* names[] = {
+        "+", "-", "*", "/", "-'", ":=", "i",
+        "<", ">", "<=", ">=", "=", "<>",
+        "jf", "j", "read", "write"
+    };
+    return names[op];
+}
+
 // Главный цикл интерпретатора - обход ОПС и выполнение каждого элемента
 void Interpreter::run() {
     pc = 0;
-    while (pc < (int)ops.size()) {
+    while (pc < ops.size()) {
         const OPSElement& elem = ops[pc];
+
+        if (debug) {
+            std::cout << "#" << pc << " (" << elem.source_line << "): ";
+            switch (elem.type) {
+                case OPSElement::OPERAND:
+                    std::cout << "OP:";
+                    switch (elem.value.operand.op_type) {
+                        case VAR_INT:    std::cout << "VAR_INT[" << elem.value.operand.index << "]"; break;
+                        case VAR_REAL:   std::cout << "VAR_REAL[" << elem.value.operand.index << "]"; break;
+                        case CONST_INT:  std::cout << "CONST_INT[" << elem.value.operand.index << "]"; break;
+                        case CONST_REAL: std::cout << "CONST_REAL[" << elem.value.operand.index << "]"; break;
+                        case ARRAY_INT:  std::cout << "ARRAY_INT[" << elem.value.operand.index << "]"; break;
+                        case ARRAY_REAL: std::cout << "ARRAY_REAL[" << elem.value.operand.index << "]"; break;
+                    }
+                    break;
+                case OPSElement::OPERATION:
+                    std::cout << "OP:" << opName(elem.value.operation);
+                    break;
+                case OPSElement::LABEL:
+                    std::cout << "LABEL(" << elem.value.label << ")";
+                    break;
+            }
+            std::cout << "\n";
+            printStack();
+        }
+
         switch (elem.type) {
             case OPSElement::OPERAND:
-                evalStack.push(getOperandValue(elem));
+                evalStack.push_back(getOperandValue(elem));
                 break;
             case OPSElement::OPERATION:
                 executeOperation(elem);
                 break;
             case OPSElement::LABEL:
                 // Метка кладётся на стек как целое число (адрес перехода)
-                evalStack.push(Value::makeInt(elem.value.label));
+                evalStack.push_back(Value::makeInt(elem.value.label));
                 break;
         }
+
+        if (debug) printStack();
+
         pc++;
     }
 }

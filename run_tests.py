@@ -1,13 +1,24 @@
 import subprocess
 import sys
+import re
 
 T = "./translator"
 TIMEOUT = 5  # секунд на каждый тест
 
+DEBUG = "--debug" in sys.argv
+
+def extract_location(output: str):
+    """Извлекает первую найденную пару 'строка N, столбец M' из вывода."""
+    m = re.search(r'строка\s+(\d+),\s*столбец\s+(\d+)', output)
+    return m  # (match,) or None
+
 def run(label, test_file, input_data="", expected="", expect_fail=True):
     try:
+        cmd = [T, test_file]
+        if DEBUG:
+            cmd.append("--debug")
         result = subprocess.run(
-            [T, test_file],
+            cmd,
             input=input_data,
             capture_output=True,
             timeout=TIMEOUT,
@@ -37,6 +48,13 @@ def run(label, test_file, input_data="", expected="", expect_fail=True):
         if not ok:
             print(f"         output: {output[:200]}")
             print(f"         returncode: {result.returncode}")
+            loc = extract_location(output)
+            if loc:
+                print(f"         строка {loc.group(1)}, столбец {loc.group(2)}")
+        elif DEBUG:
+            # В режиме --debug выводим полный вывод транслятора (токены, ОПС, трассировка)
+            for line in output.splitlines():
+                print(f"         {line}")
     except subprocess.TimeoutExpired:
         print(f"[HANG] {label}  <-- завис, убит через {TIMEOUT}с")
     except FileNotFoundError:
@@ -68,4 +86,3 @@ run("3.9 Необъявленная переменная",    "tests/test3.9.txt
 run("3.10 Деление на ноль",            "tests/test3.10.txt","7",                "деление", expect_fail=True)
 
 print("=" * 60)
-print("Done.")

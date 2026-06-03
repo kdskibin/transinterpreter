@@ -86,26 +86,26 @@ int main(int argc, char* argv[]) {
         // ===== ШАГ 3: Интерпретация =====
         if (debug) std::cout << "\n=== ВЫПОЛНЕНИЕ ПРОГРАММЫ ===\n\n";
         
-        Interpreter interpreter(ops, parser.getSymbolTable());
+        Interpreter interpreter(ops, parser.getSymbolTable(), debug);
         interpreter.run();
         
         if (debug) std::cout << "\n=== ПРОГРАММА ЗАВЕРШЕНА УСПЕШНО ===\n";
         
     } catch (const LexerError& e) {
         std::cerr << "\nЛЕКСИЧЕСКАЯ ОШИБКА:\n";
-        std::cerr << "   Строка " << e.line << ", позиция " << e.column << "\n";
+        std::cerr << "   строка " << e.line << ", столбец " << e.column << "\n";
         std::cerr << "   " << e.what() << "\n\n";
         return 1;
-        
+
     } catch (const ParserError& e) {
         std::cerr << "\nСИНТАКСИЧЕСКАЯ ОШИБКА:\n";
-        std::cerr << "   Строка " << e.line << ", позиция " << e.column << "\n";
+        std::cerr << "   строка " << e.line << ", столбец " << e.column << "\n";
         std::cerr << "   " << e.what() << "\n\n";
         return 1;
-        
+
     } catch (const RuntimeError& e) {
         std::cerr << "\nОШИБКА ВЫПОЛНЕНИЯ:\n";
-        std::cerr << "   Строка " << e.line << ", позиция " << e.column << "\n";
+        std::cerr << "   строка " << e.line << ", столбец " << e.column << "\n";
         std::cerr << "   " << e.what() << "\n\n";
         return 1;
         

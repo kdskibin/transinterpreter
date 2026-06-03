@@ -2,7 +2,6 @@
 #define INTERPRETER_H
 
 #include "ops.h"
-#include <stack>
 #include <map>
 #include <vector>
 #include <exception>
@@ -60,6 +59,18 @@ struct Value {
         if (type == REAL) return (int)data.real_val;
         return data.int_val;
     }
+
+    const char* typeName() const {
+        switch (type) {
+            case INT:    return "INT";
+            case REAL:   return "REAL";
+            case BOOL:   return "BOOL";
+            case ARRAY_REF: return "ARRAY_REF";
+            case VAR_INT_REF: return "VAR_INT_REF";
+            case VAR_REAL_REF: return "VAR_REAL_REF";
+            default: return "???";
+        }
+    }
 };
 
 // Исключение для ошибок выполнения
@@ -84,8 +95,10 @@ class Interpreter {
 private:
     const OPS& ops;
     const SymbolTable& symbols;
-    
-    std::stack<Value> evalStack;  // Магазин вычислений
+    bool debug;
+
+    std::vector<Value> evalStack;  // Магазин вычислений (vector как стек)
+    void printStack() const;
     
     // Хранилища переменных
     std::map<int, int> int_vars;
@@ -97,7 +110,7 @@ private:
     
     // Вспомогательные функции
     Value getOperandValue(const OPSElement& elem);
-    void setVariableValue(const Value& var_ref, const Value& value);
+    void setVariableValue(const Value& var_ref, const Value& value, int line, int col);
     Value deref(const Value& v); 
     
     void executeOperation(const OPSElement& elem);
@@ -111,6 +124,7 @@ private:
     
 public:
     Interpreter(const OPS& ops, const SymbolTable& symbols);
+    Interpreter(const OPS& ops, const SymbolTable& symbols, bool debug);
     
     void run();
 };
