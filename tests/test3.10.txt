@@ -1,0 +1,7 @@
+int a, b, result ;
+begin
+  read(a);
+  b := 0;
+  result := a / b;
+  write(result)
+end

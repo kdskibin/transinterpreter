@@ -1,0 +1,5 @@
+real x ;
+begin
+  x := (3.0 + 2.0;
+  write(x)
+end

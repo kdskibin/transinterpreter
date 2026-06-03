@@ -1,0 +1,10 @@
+real a, b, result ;
+begin
+  read(a);
+  read(b);
+  if a > b then
+    result := (a + b) * (a - b) / a
+  else
+    result := (a + b) * (b - a) / b;
+  write(result)
+end

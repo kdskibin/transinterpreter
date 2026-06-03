@@ -1,0 +1,7 @@
+real a, b, result ;
+begin
+  read(a);
+  read(b);
+  result := abs(a - b) * (a + b) - sqrt(a * a + b * b);
+  write(result)
+end
