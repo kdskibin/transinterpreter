@@ -1,0 +1,7 @@
+int a, b ;
+begin
+  read(a);
+  read(b);
+  if a > b
+    write(a)
+end

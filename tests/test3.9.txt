@@ -1,0 +1,6 @@
+int x ;
+begin
+  x := 5;
+  y := x + 1;
+  write(y)
+end

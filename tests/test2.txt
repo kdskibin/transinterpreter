@@ -1,0 +1,29 @@
+int n ;
+int a[100] ;
+int i, j, tmp ;
+begin
+  read(n);
+  i := 0;
+  while i < n do begin
+    read(a[i]);
+    i := i + 1
+  end;
+  i := 0;
+  while i < n - 1 do begin
+    j := 0;
+    while j < n - 1 - i do begin
+      if a[j] > a[j + 1] then begin
+        tmp := a[j];
+        a[j] := a[j + 1];
+        a[j + 1] := tmp
+      end;
+      j := j + 1
+    end;
+    i := i + 1
+  end;
+  i := 0;
+  while i < n do begin
+    write(a[i]);
+    i := i + 1
+  end
+end
