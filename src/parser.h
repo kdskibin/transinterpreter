@@ -91,7 +91,7 @@ private:
     // Вспомогательное состояние для семантических действий
     Token lastToken;             // последний сопоставленный токен
     std::string  pendingName;    // имя объявляемой переменной
-    int          pendingLine{0}, pendingCol{0};
+    int pendingLine{0}, pendingCol{0};
     enum VarType { TYPE_INT, TYPE_REAL } currentVarType{TYPE_INT};
     std::stack<int> labelStack;  // стек открытых JF/J меток (backpatching)
     std::stack<int> loopStack;   // стек позиций начала while-циклов

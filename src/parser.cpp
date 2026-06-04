@@ -304,8 +304,7 @@ void Parser::initTable() {
 // Вспомогательные методы
 // ============================================================
 
-Parser::Parser(const std::vector<Token>& toks)
-    : tokens(toks), current(0) {
+Parser::Parser(const std::vector<Token>& toks) : tokens(toks), current(0) {
     if (!tokens.empty()) lastToken = tokens[0];
     initTable();
 }
@@ -502,8 +501,6 @@ OPS Parser::parse() {
         if (top.kind == StackSym::TERM) {
             if (top.id == TOKEN_EOF && curTok().type == TOKEN_EOF) break;
 
-            // Если текущий токен — EOF, а ожидалось что-то конкретное —
-            // сообщить, ЧЕГО не хватило (а не generic "unexpected EOF").
             if (curTok().type == TOKEN_EOF) {
                 throw ParserError("Неожиданный конец файла. Ожидалось " + tokenName(top.id),
                                   curTok().line, curTok().column);
@@ -526,8 +523,7 @@ OPS Parser::parse() {
                               tok.line, tok.column);
         }
 
-        // Правило раскрываем в обратном порядке, чтобы первый элемент
-        // оказался на вершине магазина
+        // Правило раскрываем в обратном порядке, чтобы первый элемент оказался на вершине магазина
         const Rule& rule = it->second;
         for (int i = (int)rule.size() - 1; i >= 0; --i)
             stk.push(rule[i]);

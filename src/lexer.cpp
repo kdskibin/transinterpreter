@@ -39,13 +39,12 @@ enum CharClass {
 };
 
 // Специальные значения ячеек таблицы переходов
-const int TR_Z   = 50;  // Z  — лексема распознана, текущий символ потребляем
-const int TR_ZS  = 51;  // Z* — лексема распознана, текущий символ НЕ потребляем (откат)
+const int TR_Z   = 50;  // Z  — лексема распознана, текущий символ запоминаем
+const int TR_ZS  = 51;  // Z* — лексема распознана, текущий символ НЕ запоминаем (откат)
 const int TR_ERR = -1;  // ошибка — недопустимый символ в данном состоянии
 
 // Таблица переходов [состояние][класс_символа]
-//
-//            <б>     <ц>     .       пробел  :       =       <       >     <с>    ┴
+// <б>     <ц>     .   пробел    :      =     <      >     <с>     ┴
 const int TRANS[12][10] = {
  { ST_I,  ST_C,  TR_Z,  ST_S,  ST_A,  TR_Z,  ST_E,  ST_F,  TR_Z,  TR_Z  }, // S
  { ST_I,  ST_I,  TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS }, // I
@@ -61,7 +60,6 @@ const int TRANS[12][10] = {
  { TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS, TR_ZS }, // K (>=)
 };
 
-// ------------------------------------------------------------
 
 Lexer::Lexer(const std::string& filename) : pos(0), line(1), column(1) {
     std::ifstream file(filename);
@@ -83,7 +81,8 @@ Lexer::Lexer(const std::string& filename) : pos(0), line(1), column(1) {
 void Lexer::advanceChar() {
     if (pos < source.size()) {
         if (source[pos] == '\n') { line++; column = 1; }
-        else                     { column++;            }
+        else 
+            column++;
         pos++;
     }
 }
@@ -122,8 +121,8 @@ void Lexer::skipWhitespaceAndComments() {
 Token Lexer::buildToken(int finalState, const std::string& buf,
                         int sl, int sc) const {
     Token tok;
-    tok.value  = buf;
-    tok.line   = sl;
+    tok.value = buf;
+    tok.line = sl;
     tok.column = sc;
 
     switch (finalState) {
@@ -197,17 +196,17 @@ Token Lexer::getNextToken() {
     std::string buf;
 
     while (true) {
-        bool   atEOF = (pos >= source.size());
-        char   c     = atEOF ? '\0' : source[pos];
-        int    cc    = atEOF ? CC_EOF : charClass(c);
-        int    ns    = TRANS[state][cc];
+        bool atEOF = (pos >= source.size());
+        char c = atEOF ? '\0' : source[pos];
+        int cc = atEOF ? CC_EOF : charClass(c);
+        int ns = TRANS[state][cc];
 
         if (ns == TR_ERR) {
             throw LexerError(std::string("Неизвестный символ: ") + c, line, column);
         }
 
         if (ns == TR_Z) {
-            // Z: потребляем символ и завершаем лексему.
+            // Z: запоминаем символ и завершаем лексему.
             // Пробел в состоянии E или F используется как разделитель (<пробел, >пробел),
             // в буфер не добавляем, чтобы он не входил в значение токена.
             if (!atEOF) {
@@ -218,15 +217,15 @@ Token Lexer::getNextToken() {
         }
 
         if (ns == TR_ZS) {
-            // Z*: откат — символ не потребляем, возвращаем накопленную лексему
+            // Z*: откат — символ не запоминаем, возвращаем накопленную лексему
             return buildToken(state, buf, startLine, startCol);
         }
 
-        // Обычный переход: потребляем символ, пробелы в буфер не включаем
+        // Обычный переход: запоминаем символ, пробелы в буфер не включаем
         if (cc != CC_SPACE) buf += c;
         advanceChar();
 
-        // Пока находимся в начальном состоянии (пропуск пробелов через S→S),
+        // Пока находимся в начальном состоянии (пропуск пробелов через S->S),
         // сдвигаем стартовую позицию токена
         if (state == ST_S && ns == ST_S) {
             startLine = line;
